@@ -52,7 +52,7 @@ export const executeScript = (clickElement) => {
 
     const getIntervalMap = {
       like: () => startInterval(() => {
-        settings.like && getHearts().forEach((h) => h !== setTimeout(() => settings.like && clickElement(h), random(300, 3300)));
+        settings.like && getHearts().forEach((h) => settings.like && clickElement(h));
       }, 5000, 'like'),
       scroll: () => startInterval(() => {
         if (settings.scroll) {
