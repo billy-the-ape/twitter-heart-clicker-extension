@@ -50,17 +50,12 @@ export const executeScript = (clickElement) => {
       return setInterval(callback, ms);
     }
 
-    const getIntervalMap = {
-      like: () => startInterval(() => {
-        settings.like && getHearts().forEach((h) => settings.like && clickElement(h));
-      }, 5000, 'like'),
-      scroll: () => startInterval(() => {
-        if (settings.scroll) {
-          if (reloads > rndReloads) {
-            window.location.reload();
-            return;
-          }
-
+    const mainInterval = () => startInterval(() => {
+      settings.like && getHearts().forEach((h, i) => setTimeout(() => settings.like && clickElement(h), 50 * (i + 1)));
+  
+      if (settings.scroll) {
+        if(!settings.like) {
+          // Liking is turned off, just scroll to each tweet
           let tweet = tweets[currentIndex++];
           if (!tweet) {
             tweets = getTweets(tweets[currentIndex - 2]);
@@ -69,13 +64,34 @@ export const executeScript = (clickElement) => {
             reloads++;
           }
           if (tweet) tweet.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          // Liking is turned on, scroll to heart icons
+          setTimeout(()=> {
+            let tweet = tweets[currentIndex++];
+            if (!tweet) {
+              tweets = getHearts();
+              currentIndex = 0;
+              tweet = tweets[currentIndex++];
+              if (!tweet) {
+                if (reloads > rndReloads) {
+                  window.location.reload();
+                  return;
+                }
+                reloads++;
+                window.scrollTo({
+                  top: document.body.scrollHeight,
+                  left: 0,
+                  behavior: 'smooth'
+                });
+              }
+            }
+            if (tweet) tweet.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 2000);// wait this long so all the likes will fire properly
         }
-      }, 5000, 'scroll')
-    };
+      }
+    }, 3000);
 
-    const intervalRefMap = {
-      scroll: settings.scroll ? getIntervalMap.scroll() : null, like: settings.like ? getIntervalMap.like() : null
-    };
+    let intervalKey = mainInterval();
 
     // Setup UX
     const uiContainer = getNav();
@@ -121,12 +137,10 @@ export const executeScript = (clickElement) => {
     const handleClick = (settingKey) => ({ target }) => {
       const button = target.matches('[role="button"]') ? target : target.closest('[role="button"]');
       if (settings[settingKey] = !settings[settingKey]) {
-        intervalRefMap[settingKey] = getIntervalMap[settingKey]();
         localStorage.setItem(getStorageKey(settingKey), '1');
         doButtonStyle(button, true);
       } else {
         localStorage.setItem(getStorageKey(settingKey), '');
-        intervalRefMap[settingKey] = clearTimeout(intervalRefMap[settingKey]);
         doButtonStyle(button, false);
       }
     };
@@ -156,25 +170,19 @@ export const executeScript = (clickElement) => {
         href = window.location.href;
         settings = getLocalSettings();
 
-        Object.entries(intervalRefMap).forEach(([key, value]) => {
+        Object.entries(settings).forEach(([key, value]) => {
           const button = getButton(key);
-          if (settings[key]) {
-            if (!value) intervalRefMap[key] = getIntervalMap[key]();
-            doButtonStyle(button, true);
-          } else {
-            clearTimeout(value);
-            doButtonStyle(button, false);
-          }
+          doButtonStyle(button, value);
         });
       }
       if (document.hidden) {
         if (!wasHidden) {
           wasHidden = true;
-          Object.entries(intervalRefMap).forEach(([key, value]) => { intervalRefMap[key] = clearInterval(value) });
+          clearInterval(intervalKey);
         }
       } else if (wasHidden) {
         wasHidden = false;
-        Object.keys(intervalRefMap).forEach((key) => { settings[key] && !intervalRefMap[key] && (intervalRefMap[key] = getIntervalMap[key]()) });
+        intervalKey = mainInterval();
       }
     }, 50);
   }, 3000);

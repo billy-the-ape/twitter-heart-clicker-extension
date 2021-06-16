@@ -14,26 +14,35 @@ export const clickLocation = (
   button = "left",
   clickCount = 1
 ) => {
-  const target = { tabId },
-    args = {
-      ...location,
-      type: "mousePressed",
-      button,
-      clickCount,
-    };
+  const target = { tabId };
+  const clickArgs = {
+    ...location,
+    type: "mousePressed",
+    button,
+    clickCount,
+  };
+
+  const movedArgs = { ...location, type: "mouseMoved" };
 
   chrome.debugger.attach(target, "1.2", () => {
     chrome.debugger.sendCommand(
       target,
       "Input.dispatchMouseEvent",
-      args,
+      { ...location, type: "mouseMoved" },
       () => {
-        args.type = "mouseReleased";
         chrome.debugger.sendCommand(
           target,
           "Input.dispatchMouseEvent",
-          args,
-          () => chrome.debugger.detach(target)
+          clickArgs,
+          () => {
+            clickArgs.type = "mouseReleased";
+            chrome.debugger.sendCommand(
+              target,
+              "Input.dispatchMouseEvent",
+              clickArgs,
+              () => chrome.debugger.detach(target)
+            );
+          }
         );
       }
     );

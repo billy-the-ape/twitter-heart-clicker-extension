@@ -1,6 +1,8 @@
 import { executeScript } from "./list-heart-clicker";
 import { coordinatesInViewport } from "./util";
 
+const random = (min, max) => Math.random() * (max - min) + min;
+
 chrome.runtime.sendMessage({ action: "init" }, () => {
   var checkReady = setInterval(() => {
     if (document.readyState === "complete") {
@@ -13,10 +15,15 @@ chrome.runtime.sendMessage({ action: "init" }, () => {
           return;
         }
 
+        const x = random(left, right);
+        const y = random(top, bottom);
+
+        console.log({ el, x, y });
+
         chrome.runtime.sendMessage({
           action: "click",
-          x: (left + right) / 2,
-          y: (top + bottom) / 2,
+          x,
+          y,
         });
       });
     }
