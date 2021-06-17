@@ -31,6 +31,9 @@ export const executeScript = (clickElement) => {
     }
 
     // Setup settings
+    const reloadStorageKey = 'heart-clicker-last-reload';
+    const lastReloadStr = Number(localStorage.getItem(reloadStorageKey));
+    const lastReload = !isNaN(lastReloadStr) ? new Date(lastReloadStr) : null;
     const getStorageKey = (key) => `t-${key}-${location.pathname}`
     const getLocalSettings = () => ({
       scroll: !!localStorage.getItem(getStorageKey('scroll')),
@@ -74,15 +77,19 @@ export const executeScript = (clickElement) => {
               tweet = tweets[currentIndex++];
               if (!tweet) {
                 if (reloads > rndReloads) {
+                  localStorage.setItem(reloadStorageKey, new Date().getTime());
                   window.location.reload();
                   return;
                 }
+                // If last reload was in the last 30 mins just chill and wait
+                if(lastReload && lastReload < new Date().getTime() - 60000 * 30) {
+                  window.scrollTo({
+                    top: document.body.scrollHeight,
+                    left: 0,
+                    behavior: 'smooth'
+                  });
+                }
                 reloads++;
-                window.scrollTo({
-                  top: document.body.scrollHeight,
-                  left: 0,
-                  behavior: 'smooth'
-                });
               }
             }
             if (tweet) tweet.scrollIntoView({ behavior: 'smooth', block: 'center' });
